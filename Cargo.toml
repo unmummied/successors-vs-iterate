@@ -3,4 +3,19 @@ name = "successors_vs_iterate"
 version = "0.1.0"
 edition = "2024"
 
+[lints.rust]
+dead_code = "allow"
+
+[lints.clippy]
+unwrap_used = { level = "deny", priority = 1 }
+many_single_char_names = { level = "allow", priority = 1 }
+pedantic = { level = "warn", priority = 0 }
+# nursery = { level = "warn", priority = 0 }
+all = { level = "warn", priority = -1 }
+
+# [profile.release]
+# strip = true
+# panic = "abort"
+
 [dependencies]
+itertools = "0.14.0"
