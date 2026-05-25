@@ -2,10 +2,6 @@ mod iterate;
 mod successors;
 mod utils;
 
-fn main() {
-    println!("Hello, world!");
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

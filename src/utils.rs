@@ -29,17 +29,17 @@ pub const fn is_prime(n: u32) -> bool {
 /// The similar function of the Haskell's `Data.List.unfoldr`
 ///
 /// The 'dual' to fold: while fold reduces a list to a summary value, unfold builds a list from a seed value.
-fn unfold<A, B, F>(init: &B, f: &F) -> impl Iterator<Item = A>
+fn unfold_ref<A, B, F>(init: &B, f: &F) -> impl Iterator<Item = A>
 where
     F: Fn(&B) -> Option<(A, B)>,
 {
     successors(f(init), |(_, b)| f(b)).map(|(a, _)| a)
 }
 
-/// A mutable and ownership-consuming version of `unfold`.
+/// A mutable and ownership-consuming version of `unfold_ref`.
 ///
-/// This version takes ownership or the initial seed value and allows the generator function to maintain and mutate state directly via `FnMut`.
-fn unfold_<A, B, F>(init: B, mut f: F) -> impl Iterator<Item = A>
+/// This version takes ownership of the initial seed value and allows the generator function to maintain and mutate state directly via `FnMut`.
+fn unfold<A, B, F>(init: B, mut f: F) -> impl Iterator<Item = A>
 where
     F: FnMut(&mut B) -> Option<(A, B)>,
 {
@@ -53,7 +53,7 @@ where
 
 /// Modular exponentiation
 ///
-/// Returns the remainder when an integer `base` is raised to the power `exp`, and the divided by a positive integer `modulo`.
+/// Returns the remainder when an integer `base` is raised to the power `exp`, and then divided by a positive integer `modulo`.
 fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
     if modulo == 0 {
         return None;
@@ -61,7 +61,7 @@ fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
 
     let (base, modulo) = (u64::from(base), u64::from(modulo));
 
-    let (res, _) = unfold(&exp, &|&bits| {
+    let (res, _) = unfold(exp, |&mut bits| {
         (bits != 0).then_some((bits & 1 == 1, bits >> 1))
     })
     .fold((1 % modulo, base % modulo), |(acc, b), p| {
@@ -69,6 +69,81 @@ fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
         (acc, (b * b) % modulo)
     });
     res.try_into().ok()
+}
+
+/// Floyd's cycle detection algorithm
+///
+/// Returns mu and lambda if the cycle exists.
+fn detect_cycle_floyd<T, F>(x0: &T, f: &F) -> (usize, usize)
+where
+    T: Clone + Eq,
+    F: Fn(T) -> T,
+{
+    let mut tortoise = f(x0.clone());
+    let mut hare = f(f(x0.clone()));
+
+    while tortoise != hare {
+        tortoise = f(tortoise);
+        hare = f(f(hare));
+    }
+
+    let mut mu = 0;
+    tortoise = x0.clone();
+    while tortoise != hare {
+        tortoise = f(tortoise);
+        hare = f(hare);
+        mu += 1;
+    }
+
+    let mut lambda = 1;
+    hare = f(tortoise.clone());
+    while tortoise != hare {
+        hare = f(hare);
+        lambda += 1;
+    }
+
+    (mu, lambda)
+}
+
+/// Brent's improved cycle detection algorithm
+///
+/// Returns mu and lambda if the cycle exists.
+fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
+where
+    T: Clone + Eq,
+    F: Fn(T) -> T,
+{
+    let mut tortoise = x0.clone();
+    let mut hare = x0.clone();
+
+    let mut power = 1;
+    let mut lambda = 1;
+
+    hare = f(hare);
+    while tortoise != hare {
+        if power == lambda {
+            tortoise = hare.clone();
+            power *= 2;
+            lambda = 0;
+        }
+        hare = f(hare);
+        lambda += 1;
+    }
+
+    tortoise = x0.clone();
+    hare = x0.clone();
+    for _ in 0..lambda {
+        hare = f(hare);
+    }
+
+    let mut mu = 0;
+    while tortoise != hare {
+        tortoise = f(tortoise);
+        hare = f(hare);
+        mu += 1;
+    }
+
+    (mu, lambda)
 }
 
 #[cfg(test)]
@@ -134,5 +209,40 @@ mod tests {
             pow_mod(99991, 12345, 1_000_000_007),
             Some(naive_pow(99991, 12345, 1_000_000_007) as _)
         );
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn cycle_detector_tester(detector: fn(&usize, &dyn Fn(usize) -> usize) -> (usize, usize)) {
+        let tests = [
+            (3usize, 4usize, 0usize),
+            (0, 5, 0),
+            (0, 1, 0),
+            (5, 1, 0),
+            (1, 10, 0),
+            (10, 2, 0),
+            (3, 4, 10),
+            (0, 3, 5),
+        ];
+
+        for (mu, lambda, x0) in tests {
+            let f = move |x: usize| {
+                x.checked_sub(x0 + mu) // entered the cycle?
+                    .map_or_else(|| x + 1, |over| x0 + mu + (over + 1) % lambda)
+            };
+
+            let (detected_mu, detected_lambda) = detector(&x0, &f);
+            assert_eq!(mu, detected_mu);
+            assert_eq!(lambda, detected_lambda);
+        }
+    }
+
+    #[test]
+    fn test_detect_cycle_floyd() {
+        cycle_detector_tester(|x0, f| detect_cycle_floyd(x0, &f));
+    }
+
+    #[test]
+    fn test_detect_cycle_brent() {
+        cycle_detector_tester(|x0, f| detect_cycle_brent(x0, &f));
     }
 }
