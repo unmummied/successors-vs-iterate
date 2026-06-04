@@ -84,3 +84,11 @@ pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
     .take_while(|&((_, d), _)| d != 0)
     .map(|(_, a)| a)
 }
+
+pub fn detect_cycle_floyd<T, F>(x0: &T, f: &F) -> (usize, usize)
+where
+    T: Clone + Eq,
+    F: Fn(&T) -> T,
+{
+    todo!();
+}

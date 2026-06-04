@@ -4,7 +4,7 @@ pub const ERROR_TOO_LARGE_FOR_LUCAS_LEHMER: &str =
     "Error: `p` should be less than `65`... see https://oeis.org/A000043";
 pub const UNREACHABLE_DIVERGENCE: &str =
     "Unreachable: The convergence is mathematically guaranteed...";
-const UNREACHABLE_EMPTY: &str = "Unreachable: At the very least, `init` is `Some`...";
+pub const UNREACHABLE_EMPTY: &str = "Unreachable: At the very least, `init` is `Some`...";
 
 /// 'Naive' primality test
 ///
@@ -26,7 +26,7 @@ pub const fn is_prime(n: u32) -> bool {
     true
 }
 
-/// The similar function of the Haskell's `Data.List.unfoldr`
+/// Similar function of the `Data.List.unfoldr` in Haskell
 ///
 /// The 'dual' to fold: while fold reduces a list to a summary value, unfold builds a list from a seed value.
 fn unfold_ref<A, B, F>(init: &B, f: &F) -> impl Iterator<Item = A>
@@ -36,7 +36,7 @@ where
     successors(f(init), |(_, b)| f(b)).map(|(a, _)| a)
 }
 
-/// A mutable and ownership-consuming version of `unfold_ref`.
+/// Mutable and ownership-consuming version of `unfold_ref`
 ///
 /// This version takes ownership of the initial seed value and allows the generator function to maintain and mutate state directly via `FnMut`.
 fn unfold<A, B, F>(init: B, mut f: F) -> impl Iterator<Item = A>
@@ -71,43 +71,9 @@ fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
     res.try_into().ok()
 }
 
-/// Floyd's cycle detection algorithm
+/// R. P. Brent's improved cycle detection algorithm
 ///
-/// Returns mu and lambda if the cycle exists.
-fn detect_cycle_floyd<T, F>(x0: &T, f: &F) -> (usize, usize)
-where
-    T: Clone + Eq,
-    F: Fn(T) -> T,
-{
-    let mut tortoise = f(x0.clone());
-    let mut hare = f(f(x0.clone()));
-
-    while tortoise != hare {
-        tortoise = f(tortoise);
-        hare = f(f(hare));
-    }
-
-    let mut mu = 0;
-    tortoise = x0.clone();
-    while tortoise != hare {
-        tortoise = f(tortoise);
-        hare = f(hare);
-        mu += 1;
-    }
-
-    let mut lambda = 1;
-    hare = f(tortoise.clone());
-    while tortoise != hare {
-        hare = f(hare);
-        lambda += 1;
-    }
-
-    (mu, lambda)
-}
-
-/// Brent's improved cycle detection algorithm
-///
-/// Returns mu and lambda if the cycle exists.
+/// Returns `mu` (the length of the tail) and `lambda` (the length of the cycle).
 fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
 where
     T: Clone + Eq,
@@ -153,7 +119,7 @@ mod tests {
     #[test]
     #[allow(clippy::cast_possible_truncation)]
     fn test_pow_mod() {
-        fn naive_pow(mut base: u64, mut exp: u64, modulo: u64) -> u64 {
+        fn naive_pow_mod(mut base: u64, mut exp: u64, modulo: u64) -> u64 {
             let mut res = 1 % modulo;
             base %= modulo;
 
@@ -197,52 +163,26 @@ mod tests {
         assert_eq!(pow_mod(5, 10, 0), None);
         assert_eq!(pow_mod(10, 10, 2), Some(0));
         assert_eq!(pow_mod(10, 10, 3), Some(1));
-        assert_eq!(pow_mod(123, 456, 97), Some(naive_pow(123, 456, 97) as _));
-        assert_eq!(pow_mod(2, 20, 1_000), Some(naive_pow(2, 20, 1_000) as _));
+        assert_eq!(
+            pow_mod(123, 456, 97),
+            Some(naive_pow_mod(123, 456, 97) as _)
+        );
+        assert_eq!(
+            pow_mod(2, 20, 1_000),
+            Some(naive_pow_mod(2, 20, 1_000) as _)
+        );
         assert_eq!(
             pow_mod(7, 31, 1_000_000_007),
-            Some(naive_pow(7, 31, 1_000_000_007) as _)
+            Some(naive_pow_mod(7, 31, 1_000_000_007) as _)
         );
-        assert_eq!(pow_mod(12345, 6, 97), Some(naive_pow(12345, 6, 97) as _));
+        assert_eq!(
+            pow_mod(12345, 6, 97),
+            Some(naive_pow_mod(12345, 6, 97) as _)
+        );
 
         assert_eq!(
             pow_mod(99991, 12345, 1_000_000_007),
-            Some(naive_pow(99991, 12345, 1_000_000_007) as _)
+            Some(naive_pow_mod(99991, 12345, 1_000_000_007) as _)
         );
-    }
-
-    #[allow(clippy::type_complexity)]
-    fn cycle_detector_tester(detector: fn(&usize, &dyn Fn(usize) -> usize) -> (usize, usize)) {
-        let tests = [
-            (3usize, 4usize, 0usize),
-            (0, 5, 0),
-            (0, 1, 0),
-            (5, 1, 0),
-            (1, 10, 0),
-            (10, 2, 0),
-            (3, 4, 10),
-            (0, 3, 5),
-        ];
-
-        for (mu, lambda, x0) in tests {
-            let f = move |x: usize| {
-                x.checked_sub(x0 + mu) // entered the cycle?
-                    .map_or_else(|| x + 1, |over| x0 + mu + (over + 1) % lambda)
-            };
-
-            let (detected_mu, detected_lambda) = detector(&x0, &f);
-            assert_eq!(mu, detected_mu);
-            assert_eq!(lambda, detected_lambda);
-        }
-    }
-
-    #[test]
-    fn test_detect_cycle_floyd() {
-        cycle_detector_tester(|x0, f| detect_cycle_floyd(x0, &f));
-    }
-
-    #[test]
-    fn test_detect_cycle_brent() {
-        cycle_detector_tester(|x0, f| detect_cycle_brent(x0, &f));
     }
 }

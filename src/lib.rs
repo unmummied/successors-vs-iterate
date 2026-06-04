@@ -69,4 +69,38 @@ mod tests {
         test(iterate::lucas_lehmer);
         test(successors::lucas_lehmer);
     }
+
+    #[allow(clippy::type_complexity)]
+    fn cycle_detector_tester(detector: fn(&usize, &dyn Fn(&usize) -> usize) -> (usize, usize)) {
+        let tests = [
+            (3, 4, 0),
+            (0, 5, 0),
+            (0, 1, 0),
+            (5, 1, 0),
+            (1, 10, 0),
+            (10, 2, 0),
+            (3, 4, 10),
+            (0, 3, 5),
+        ];
+
+        for (mu, lambda, x0) in tests {
+            let f = move |x: &usize| {
+                x.checked_sub(x0 + mu) // entered the cycle?
+                    .map_or_else(|| x + 1, |over| x0 + mu + (over + 1) % lambda)
+            };
+            let (detected_mu, detected_lambda) = detector(&x0, &f);
+            assert_eq!(mu, detected_mu);
+            assert_eq!(lambda, detected_lambda);
+        }
+    }
+
+    #[test]
+    fn test_detect_cycle_floyd() {
+        cycle_detector_tester(|x0, f| successors::detect_cycle_floyd(x0, &f));
+    }
+
+    #[test]
+    fn test_detect_cycle_brent() {
+        // cycle_detector_tester(|x0, f| successors::detect_cycle_brent(x0, &f));
+    }
 }

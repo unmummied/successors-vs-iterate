@@ -1,6 +1,8 @@
 use std::{collections::HashMap, iter::successors};
 
-use crate::utils::{ERROR_TOO_LARGE_FOR_LUCAS_LEHMER, UNREACHABLE_DIVERGENCE, is_prime};
+use crate::utils::{
+    ERROR_TOO_LARGE_FOR_LUCAS_LEHMER, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime,
+};
 
 /// Greatest common divisor
 ///
@@ -83,11 +85,12 @@ pub fn lucas_lehmer(p: u8) -> bool {
         == Some(0)
 }
 
-/// The successive convergents of the continued fraction of square root
+/// Successive convergents of the continued fraction of square root
 ///
 /// Returns an iterator that yields the partial quotients (coefficients) of the continued fraction expansion of square root of `n`.
 ///
-/// If `n` is a (perfect) square number, it yields `n.isqrt()` and terminates, otherwise, it loops infinitely.
+/// If `n` is a (perfect) square number, it yields `n.isqrt()` and terminates.
+/// Otherwise, it loops infinitely.
 pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
     let a0 = n.isqrt();
     successors(Some(((0, 1), a0)), move |&((prev_m, prev_d), prev_a)| {
@@ -97,4 +100,38 @@ pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
         Some(((next_m, next_d), next_a))
     })
     .map(|(_, a)| a)
+}
+
+/// R. W. Floyd's cycle detection algorithm
+///
+/// Returns `mu` (the length of the tail) and `lambda` (the length of the cycle).
+pub fn detect_cycle_floyd<T, F>(x0: &T, f: &F) -> (usize, usize)
+where
+    T: Clone + Eq,
+    F: Fn(&T) -> T,
+{
+    let orbit = |init| successors(Some(init), |x| Some(f(x)));
+
+    let tortoise = orbit(x0.clone());
+    let hare = tortoise.clone().step_by(2);
+    let reunion = tortoise
+        .clone()
+        .zip(hare)
+        .skip(1)
+        .find_map(|(t, h)| (t == h).then_some(t))
+        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    let cycle = orbit(reunion);
+    let (mu, junction) = cycle
+        .zip(tortoise)
+        .enumerate()
+        .find_map(|(mu, (x, t))| (x == t).then_some((mu, x)))
+        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    let lambda = 1 + orbit(f(&junction))
+        .enumerate()
+        .find_map(|(lambda, x)| (x == junction).then_some(lambda))
+        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    (mu, lambda)
 }
