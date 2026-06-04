@@ -128,7 +128,8 @@ where
         .find_map(|(mu, (x, t))| (x == t).then_some((mu, x)))
         .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
 
-    let lambda = 1 + orbit(f(&junction))
+    let cycle = orbit(f(&junction));
+    let lambda = 1 + cycle
         .enumerate()
         .find_map(|(lambda, x)| (x == junction).then_some(lambda))
         .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));

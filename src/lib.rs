@@ -97,6 +97,7 @@ mod tests {
     #[test]
     fn test_detect_cycle_floyd() {
         cycle_detector_tester(|x0, f| successors::detect_cycle_floyd(x0, &f));
+        cycle_detector_tester(|x0, f| iterate::detect_cycle_floyd(x0, &f));
     }
 
     #[test]
