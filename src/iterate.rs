@@ -1,7 +1,9 @@
 use itertools::{Itertools, iterate};
 use std::collections::HashMap;
 
-use crate::utils::{ERROR_TOO_LARGE_FOR_LUCAS_LEHMER, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime};
+use crate::utils::{
+    ERROR_TOO_LARGE_FOR_LUCAS_LEHMER, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime,
+};
 
 pub fn gcd(m: u32, n: u32) -> u32 {
     if m == 0 && n == 0 {
@@ -101,18 +103,26 @@ where
         .find_map(|(t, h)| (t == h).then_some(t))
         .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
 
-    let cycle = orbit(reunion);
-    let (mu, junction) = cycle
-        .zip(tortoise)
-        .enumerate()
-        .find_map(|(mu, (x, t))| (x == t).then_some((mu, x)))
-        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
-
-    let cycle = orbit(f(&junction));
+    let cycle = orbit(f(&reunion));
     let lambda = 1 + cycle
         .enumerate()
-        .find_map(|(lambda, x)| (x == junction).then_some(lambda))
+        .find_map(|(lambda, x)| (x == reunion).then_some(lambda))
+        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    let cycle = orbit(reunion);
+    let mu = cycle
+        .zip(tortoise)
+        .enumerate()
+        .find_map(|(mu, (x, t))| (x == t).then_some(mu))
         .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
 
     (mu, lambda)
+}
+
+pub fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
+where
+    T: Clone + Eq,
+    F: Fn(&T) -> T,
+{
+    todo!()
 }

@@ -121,18 +121,29 @@ where
         .find_map(|(t, h)| (t == h).then_some(t))
         .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
 
-    let cycle = orbit(reunion);
-    let (mu, junction) = cycle
-        .zip(tortoise)
-        .enumerate()
-        .find_map(|(mu, (x, t))| (x == t).then_some((mu, x)))
-        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
-
-    let cycle = orbit(f(&junction));
+    let cycle = orbit(f(&reunion));
     let lambda = 1 + cycle
         .enumerate()
-        .find_map(|(lambda, x)| (x == junction).then_some(lambda))
+        .find_map(|(lambda, x)| (x == reunion).then_some(lambda))
+        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    let cycle = orbit(reunion);
+    let mu = cycle
+        .zip(tortoise)
+        .enumerate()
+        .find_map(|(mu, (x, t))| (x == t).then_some(mu))
         .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
 
     (mu, lambda)
+}
+
+/// R. P. Brent's improved cycle detection algorithm
+///
+/// Returns `mu` (the length of the tail) and `lambda` (the length of the cycle).
+pub fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
+where
+    T: Clone + Eq,
+    F: Fn(&T) -> T,
+{
+    todo!()
 }
