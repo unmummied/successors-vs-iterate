@@ -81,6 +81,11 @@ mod tests {
             (10, 2, 0),
             (3, 4, 10),
             (0, 3, 5),
+            (0, 1, 10),
+            (10, 1, 10),
+            (0, 100, 0),
+            (1, 100, 5),
+            (100, 5, 0),
         ];
 
         for (mu, lambda, x0) in tests {
@@ -88,6 +93,7 @@ mod tests {
                 x.checked_sub(x0 + mu) // entered the cycle?
                     .map_or_else(|| x + 1, |over| x0 + mu + (over + 1) % lambda)
             };
+
             let (detected_mu, detected_lambda) = detector(&x0, &f);
             assert_eq!(mu, detected_mu);
             assert_eq!(lambda, detected_lambda);
@@ -102,6 +108,7 @@ mod tests {
 
     #[test]
     fn test_detect_cycle_brent() {
-        // cycle_detector_tester(|x0, f| successors::detect_cycle_brent(x0, &f));
+        cycle_detector_tester(|x0, f| successors::detect_cycle_brent(x0, &f));
+        cycle_detector_tester(|x0, f| iterate::detect_cycle_brent(x0, &f));
     }
 }

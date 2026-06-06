@@ -29,7 +29,7 @@ pub const fn is_prime(n: u32) -> bool {
 /// Similar function of the `Data.List.unfoldr` in Haskell
 ///
 /// The 'dual' to fold: while fold reduces a list to a summary value, unfold builds a list from a seed value.
-fn unfold_ref<A, B, F>(init: &B, f: &F) -> impl Iterator<Item = A>
+pub fn unfold_ref<A, B, F>(init: &B, f: &F) -> impl Iterator<Item = A>
 where
     F: Fn(&B) -> Option<(A, B)>,
 {
@@ -61,7 +61,7 @@ fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
 
     let (base, modulo) = (u64::from(base), u64::from(modulo));
 
-    let (res, _) = unfold(exp, |&mut bits| {
+    let (res, _) = unfold_ref(&exp, &|&bits| {
         (bits != 0).then_some((bits & 1 == 1, bits >> 1))
     })
     .fold((1 % modulo, base % modulo), |(acc, b), p| {

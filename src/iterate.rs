@@ -1,5 +1,5 @@
 use itertools::{Itertools, iterate};
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::repeat_n};
 
 use crate::utils::{
     ERROR_TOO_LARGE_FOR_LUCAS_LEHMER, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime,
@@ -7,12 +7,13 @@ use crate::utils::{
 
 pub fn gcd(m: u32, n: u32) -> u32 {
     if m == 0 && n == 0 {
-        return 0; // see https://en.wikipedia.org/wiki/B%C3%A9zout's_identity
+        return 0;
     }
     #[allow(clippy::nonminimal_bool)]
     if !(m <= n) {
         return gcd(n, m);
     }
+
     iterate((m, n), |&(k, d)| (d, k.checked_rem(d).unwrap_or(0)))
         .find_or_last(|&(_, q)| q == 0)
         .map_or_else(|| unreachable!("{UNREACHABLE_DIVERGENCE}"), |(res, _)| res)
@@ -60,9 +61,9 @@ pub fn lucas_lehmer(p: u8) -> bool {
         return p == 2;
     }
     if !is_prime(p.into()) {
-        // M_p is composite if p is composite.
         return false;
     }
+
     let m_p = (1 << p) - 1;
     iterate(4u128, |&prev| {
         if prev != 0 {
@@ -124,5 +125,25 @@ where
     T: Clone + Eq,
     F: Fn(&T) -> T,
 {
-    todo!()
+    let orbit = |init| iterate(init, |x| f(x));
+
+    let lambda = 1
+        + (0..)
+            .flat_map(|exp| 0..(1 << exp))
+            .zip(orbit(x0.clone()))
+            .filter_map(|(offset, t)| (offset == 0).then_some(t))
+            .enumerate()
+            .flat_map(|(exp, t)| repeat_n(t, 1 << exp).enumerate())
+            .zip(orbit(f(x0)))
+            .find_map(|((lambda, t), h)| (t == h).then_some(lambda))
+            .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    let mu = orbit(x0.clone())
+        .skip(lambda)
+        .zip(orbit(x0.clone()))
+        .enumerate()
+        .find_map(|(mu, (x, t))| (x == t).then_some(mu))
+        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+
+    (mu, lambda)
 }
