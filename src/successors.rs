@@ -157,7 +157,7 @@ where
 
     let lambda = 1
         + (0..)
-            .flat_map(|exp| 0..(1 << exp))
+            .flat_map(|exp| 0..1 << exp)
             .zip(orbit(x0.clone()))
             .filter_map(|(offset, t)| (offset == 0).then_some(t))
             .enumerate()

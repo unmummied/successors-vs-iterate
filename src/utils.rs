@@ -71,47 +71,6 @@ fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
     res.try_into().ok()
 }
 
-/// R. P. Brent's improved cycle detection algorithm
-///
-/// Returns `mu` (the length of the tail) and `lambda` (the length of the cycle).
-fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
-where
-    T: Clone + Eq,
-    F: Fn(T) -> T,
-{
-    let mut tortoise = x0.clone();
-    let mut hare = x0.clone();
-
-    let mut power = 1;
-    let mut lambda = 1;
-
-    hare = f(hare);
-    while tortoise != hare {
-        if power == lambda {
-            tortoise = hare.clone();
-            power *= 2;
-            lambda = 0;
-        }
-        hare = f(hare);
-        lambda += 1;
-    }
-
-    tortoise = x0.clone();
-    hare = x0.clone();
-    for _ in 0..lambda {
-        hare = f(hare);
-    }
-
-    let mut mu = 0;
-    while tortoise != hare {
-        tortoise = f(tortoise);
-        hare = f(hare);
-        mu += 1;
-    }
-
-    (mu, lambda)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
