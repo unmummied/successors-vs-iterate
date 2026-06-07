@@ -55,7 +55,7 @@ pub fn collatz(n: u32) -> impl Iterator<Item = u32> {
     .take_while_inclusive(|&x| 1 < x)
 }
 
-pub fn lucas_lehmer(p: u8) -> bool {
+pub fn is_mersenne_exp(p: u8) -> bool {
     assert!(p <= 64, "{ERROR_TOO_LARGE_FOR_LUCAS_LEHMER}");
     if p < 3 {
         return p == 2;

@@ -13,8 +13,8 @@ use crate::utils::{
 pub fn gcd(m: u32, n: u32) -> u32 {
     if m == 0 && n == 0 {
         // see
-        // - https://en.wikipedia.org/wiki/B%C3%A9zout's_identity
-        // - https://www.southampton.ac.uk/~wright/1001/bezouts-identity.html
+        // - <https://en.wikipedia.org/wiki/B%C3%A9zout's_identity/>
+        // - <https://www.southampton.ac.uk/~wright/1001/bezouts-identity.html>
         return 0;
     }
     #[allow(clippy::nonminimal_bool)]
@@ -29,7 +29,7 @@ pub fn gcd(m: u32, n: u32) -> u32 {
 
 /// Prime Generator
 ///
-/// Returns an iterator that yields the prime numbers in ascending order up to `u32::MAX`.
+/// Returns an iterator that yields the prime numbers in ascending order up to [`u32::MAX`].
 pub fn primes() -> impl Iterator<Item = u32> {
     let mut map = HashMap::from([(4, 2)]);
     successors(Some((2u32, true)), move |(pred, _)| {
@@ -75,7 +75,9 @@ pub fn collatz(n: u32) -> impl Iterator<Item = u32> {
 /// Lucas-Lehmer primality test
 ///
 /// Returns whether the `p`-th Mersenne number is prime, where `p` is a prime number.
-pub fn lucas_lehmer(p: u8) -> bool {
+///
+/// See [A000043](https://oeis.org/A000043)
+pub fn is_mersenne_exp(p: u8) -> bool {
     assert!(p <= 64, "{ERROR_TOO_LARGE_FOR_LUCAS_LEHMER}");
     if p < 3 {
         return p == 2;

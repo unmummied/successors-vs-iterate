@@ -26,29 +26,30 @@ pub const fn is_prime(n: u32) -> bool {
     true
 }
 
-/// Similar function of the `Data.List.unfoldr` in Haskell
+/// The 'dual' of [`std::iter::Iterator::fold`]
 ///
-/// The 'dual' to fold: while fold reduces a list to a summary value, unfold builds a list from a seed value.
+/// Returns an iterator that yields the first elements of the pairs returned by `f`, updating the internal state with the second elements while `f` returns `Some`.
+fn unfold<A, B, F>(init: B, f: F) -> impl Iterator<Item = A>
+where
+    F: FnMut(B) -> Option<(A, B)>,
+{
+    let mut state = Some((init, f));
+    from_fn(move || {
+        let (curr, mut f) = state.take()?;
+        let (res, next) = f(curr)?;
+        state = Some((next, f));
+        Some(res)
+    })
+}
+
+/// Pure [`unfold`]
+///
+/// Similar to [Data.List.unfoldr](https://hackage-content.haskell.org/package/base-4.22.0.0/docs/Data-List.html#v:unfoldr) in Haskell
 pub fn unfold_ref<A, B, F>(init: &B, f: &F) -> impl Iterator<Item = A>
 where
     F: Fn(&B) -> Option<(A, B)>,
 {
     successors(f(init), |(_, b)| f(b)).map(|(a, _)| a)
-}
-
-/// Mutable and ownership-consuming version of `unfold_ref`
-///
-/// This version takes ownership of the initial seed value and allows the generator function to maintain and mutate state directly via `FnMut`.
-fn unfold<A, B, F>(init: B, mut f: F) -> impl Iterator<Item = A>
-where
-    F: FnMut(&mut B) -> Option<(A, B)>,
-{
-    let mut state = init;
-    from_fn(move || {
-        let (res, next) = f(&mut state)?;
-        state = next;
-        Some(res)
-    })
 }
 
 /// Modular exponentiation

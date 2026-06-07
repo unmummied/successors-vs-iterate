@@ -61,13 +61,13 @@ mod tests {
     }
 
     #[test]
-    fn test_lucas_lehmer() {
+    fn test_is_mersenne_exp() {
         let test = |f: fn(_) -> _| {
             assert!([2, 3, 5, 7, 13, 17, 19, 31, 61].into_iter().all(&f));
             assert!(![11, 23, 29, 37, 41, 43, 47, 53, 59].into_iter().any(&f));
         };
-        test(iterate::lucas_lehmer);
-        test(successors::lucas_lehmer);
+        test(iterate::is_mersenne_exp);
+        test(successors::is_mersenne_exp);
     }
 
     #[allow(clippy::type_complexity)]
