@@ -1,30 +1,10 @@
 use std::iter::{from_fn, successors};
 
-pub const ERROR_TOO_LARGE_FOR_LUCAS_LEHMER: &str =
-    "Error: `p` should be less than `65`... see https://oeis.org/A000043";
+pub const ERROR_TOO_LARGE_P: &str = "Error: `p` should be `p` < 65...";
+pub const ERROR_BASE_IS_LESS_THAN_2: &str = "Error: `a` should be 2 <= `a`...";
 pub const UNREACHABLE_DIVERGENCE: &str =
-    "Unreachable: The convergence is mathematically guaranteed...";
-pub const UNREACHABLE_EMPTY: &str = "Unreachable: At the very least, `init` is `Some`...";
-
-/// 'Naive' primality test
-///
-/// Returns whether `n` is prime.
-pub const fn is_prime(n: u32) -> bool {
-    if n < 2 {
-        return false;
-    }
-    if n.is_multiple_of(2) {
-        return n == 2;
-    }
-    let mut d = 3;
-    while d <= n.isqrt() {
-        if n.is_multiple_of(d) {
-            return false;
-        }
-        d += 2;
-    }
-    true
-}
+    "Unreachable: The convergence is mathematically guaranteed.";
+pub const UNREACHABLE_EMPTY: &str = "Unreachable: At the very least, `init` is `Some`.";
 
 /// The 'dual' of [`std::iter::Iterator::fold`]
 ///
@@ -66,10 +46,30 @@ fn pow_mod(base: u32, exp: u32, modulo: u32) -> Option<u32> {
         (bits != 0).then_some((bits & 1 == 1, bits >> 1))
     })
     .fold((1 % modulo, base % modulo), |(acc, b), p| {
-        let acc = if p { (acc * b) % modulo } else { acc };
+        let acc = if p { acc * b % modulo } else { acc };
         (acc, (b * b) % modulo)
     });
     res.try_into().ok()
+}
+
+/// 'Naive' primality test
+///
+/// Returns whether `n` is prime.
+pub const fn is_prime(n: u32) -> bool {
+    if n <= 2 {
+        return n == 2;
+    }
+    if n.is_multiple_of(2) {
+        return false;
+    }
+    let mut d = 3;
+    while d <= n.isqrt() {
+        if n.is_multiple_of(d) {
+            return false;
+        }
+        d += 2;
+    }
+    true
 }
 
 #[cfg(test)]
@@ -144,5 +144,28 @@ mod tests {
             pow_mod(99991, 12345, 1_000_000_007),
             Some(naive_pow_mod(99991, 12345, 1_000_000_007) as _)
         );
+    }
+
+    #[test]
+    fn test_is_prime() {
+        let primes = [
+            // A000040
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83,
+            89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179,
+            181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271,
+        ];
+        let odd_composites = [
+            // A071904
+            9, 15, 21, 25, 27, 33, 35, 39, 45, 49, 51, 55, 57, 63, 65, 69, 75, 77, 81, 85, 87, 91,
+            93, 95, 99, 105, 111, 115, 117, 119, 121, 123, 125, 129, 133, 135, 141, 143, 145, 147,
+            153, 155, 159, 161, 165, 169, 171, 175, 177, 183, 185, 187, 189, 195, 201, 203, 205,
+        ];
+
+        for p in primes {
+            assert!(is_prime(p));
+        }
+        for c in odd_composites {
+            assert!(!is_prime(c));
+        }
     }
 }

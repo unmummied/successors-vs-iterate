@@ -3,9 +3,7 @@ use std::{
     iter::{repeat_n, successors},
 };
 
-use crate::utils::{
-    ERROR_TOO_LARGE_FOR_LUCAS_LEHMER, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime,
-};
+use crate::utils::{ERROR_TOO_LARGE_P, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime};
 
 /// Greatest common divisor
 ///
@@ -24,7 +22,8 @@ pub fn gcd(m: u32, n: u32) -> u32 {
 
     successors(Some((m, n)), |&(k, d)| k.checked_rem(d).map(|q| (d, q)))
         .last()
-        .map_or_else(|| unreachable!("{UNREACHABLE_DIVERGENCE}"), |(res, _)| res)
+        .map(|(res, _)| res)
+        .expect(UNREACHABLE_DIVERGENCE)
 }
 
 /// Prime Generator
@@ -78,7 +77,7 @@ pub fn collatz(n: u32) -> impl Iterator<Item = u32> {
 ///
 /// See [A000043](https://oeis.org/A000043)
 pub fn is_mersenne_exp(p: u8) -> bool {
-    assert!(p <= 64, "{ERROR_TOO_LARGE_FOR_LUCAS_LEHMER}");
+    assert!(p <= 64, "{ERROR_TOO_LARGE_P}");
     if p < 3 {
         return p == 2;
     }
@@ -129,20 +128,20 @@ where
         .zip(hare)
         .skip(1)
         .find_map(|(t, h)| (t == h).then_some(t))
-        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+        .expect(UNREACHABLE_EMPTY);
 
     let cycle = orbit(f(&reunion));
     let lambda = 1 + cycle
         .enumerate()
         .find_map(|(lambda, x)| (x == reunion).then_some(lambda))
-        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+        .expect(UNREACHABLE_EMPTY);
 
     let cycle = orbit(reunion);
     let mu = cycle
         .zip(tortoise)
         .enumerate()
         .find_map(|(mu, (x, t))| (x == t).then_some(mu))
-        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+        .expect(UNREACHABLE_EMPTY);
 
     (mu, lambda)
 }
@@ -166,14 +165,14 @@ where
             .flat_map(|(exp, t)| repeat_n(t, 1 << exp).enumerate())
             .zip(orbit(f(x0)))
             .find_map(|((lambda, t), h)| (t == h).then_some(lambda))
-            .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+            .expect(UNREACHABLE_EMPTY);
 
     let mu = orbit(x0.clone())
         .skip(lambda)
         .zip(orbit(x0.clone()))
         .enumerate()
         .find_map(|(mu, (x, t))| (x == t).then_some(mu))
-        .unwrap_or_else(|| unreachable!("{UNREACHABLE_EMPTY}"));
+        .expect(UNREACHABLE_EMPTY);
 
     (mu, lambda)
 }

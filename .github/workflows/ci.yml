@@ -9,32 +9,28 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
-  build_and_test:
-    name: Build and Test (${{ matrix.toolchain }})
+  ci:
+    name: CI (${{ matrix.toolchain }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         toolchain:
           - stable
-    steps:
-      - uses: actions/checkout@v6
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --verbose
-      - run: cargo test --verbose
 
-  format_and_clippy:
-    name: Format and Clippy (${{ matrix.toolchain }})
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain:
-          - stable
-    env:
-      RUSTFLAGS: "-Dwarnings"
     steps:
       - uses: actions/checkout@v6
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --all-features
+      - run: cargo build --verbose
+      - run: cargo test --verbose
