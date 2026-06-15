@@ -29,6 +29,29 @@ pub fn gcd(m: u32, n: u32) -> u32 {
 /// Prime Generator
 ///
 /// Returns an iterator that yields the prime numbers in ascending order up to [`u32::MAX`].
+///
+/// # Theoretical upper bound
+///
+/// Even if [`primes`] traverses the entire [`u32`] range, the internal [`HashMap`] never stores more than 6542 entries.
+///
+/// The number of entries in the [`HashMap`] is bounded by pi(p), where p is the largest prime satisfying p < floor(sqrt(2^32 - 1)).
+///
+/// To determine this value without using a calculator, we can sandwich 2^32 - 1 between two consecutive squares:
+/// - First, observe that (2^16)^2 = 2^32, which is strictly greater than 2^32 - 1.
+/// - Second, expand the square of the previous integer:
+///   (2^16 - 1)^2 = 2^32 - 1 - 2 * (2^16 - 1),
+///   which is strictly less than 2^32 - 1.
+///
+/// Therefore, floor(sqrt(2^32 - 1)) = 2^16 - 1.
+///
+/// And we also know the following:
+/// - 2^16 - 1 is equal to 65535.
+/// - The largest prime below 65535 is 65521.
+/// - 65521 is the 6542nd prime number (i.e., pi(65521) = 6542).
+///
+/// Consequently, the iterator never holds more than 6542 composites tracking entries at any point during execution.
+///
+/// This follows directly from the algorithm's design: each tracked composite corresponds to exactly one active prime p < sqrt(n).
 pub fn primes() -> impl Iterator<Item = u32> {
     let mut map = HashMap::from([(4, 2)]);
     successors(Some((2u32, true)), move |(pred, _)| {
