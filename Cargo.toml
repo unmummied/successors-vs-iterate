@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 itertools = "0.14.0"
+rustc-hash = "2.1.2"
 
 [lints.rust]
 unsafe_code = "forbid"

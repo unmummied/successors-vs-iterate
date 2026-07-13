@@ -1,15 +1,18 @@
+use itertools::Itertools;
+use rustc_hash::FxHasher;
 use std::{
     collections::HashMap,
-    iter::{repeat_n, successors},
+    hash::BuildHasherDefault,
+    iter::{once, repeat_n, successors},
 };
 
-use crate::utils::{ERROR_TOO_LARGE_P, UNREACHABLE_DIVERGENCE, UNREACHABLE_EMPTY, is_prime};
+use crate::utils::{ERROR_TOO_LARGE_P, UNREACHABLE_EMPTY, is_prime};
 
 /// Greatest common divisor
 ///
 /// Returns the largest positive integer that divides each of the integers.
 pub fn gcd(m: u32, n: u32) -> u32 {
-    if m == 0 && n == 0 {
+    if (m, n) == (0, 0) {
         // see
         // - <https://en.wikipedia.org/wiki/B%C3%A9zout's_identity/>
         // - <https://www.southampton.ac.uk/~wright/1001/bezouts-identity.html>
@@ -20,10 +23,9 @@ pub fn gcd(m: u32, n: u32) -> u32 {
         return gcd(n, m);
     }
 
-    successors(Some((m, n)), |&(k, d)| k.checked_rem(d).map(|q| (d, q)))
+    successors(Some((m, n)), |&(m, n)| n.checked_rem(m).map(|r| (r, m)))
         .last()
-        .map(|(res, _)| res)
-        .expect(UNREACHABLE_DIVERGENCE)
+        .map_or(n, |(_, res)| res)
 }
 
 /// Prime Generator
@@ -34,7 +36,7 @@ pub fn gcd(m: u32, n: u32) -> u32 {
 ///
 /// Even if [`primes`] traverses the entire [`u32`] range, the internal [`HashMap`] never stores more than 6542 entries.
 ///
-/// The number of entries in the [`HashMap`] is bounded by pi(p), where p is the largest prime satisfying p < floor(sqrt(2^32 - 1)).
+/// The number of entries in the [`HashMap`] is bounded by pi(sqrt(2^32 - 1)), where pi is the [prime-counting function](https://en.wikipedia.org/wiki/Prime-counting_function).
 ///
 /// To determine this value without using a calculator, we can sandwich 2^32 - 1 between two consecutive squares:
 /// - First, observe that (2^16)^2 = 2^32, which is strictly greater than 2^32 - 1.
@@ -53,28 +55,22 @@ pub fn gcd(m: u32, n: u32) -> u32 {
 ///
 /// This follows directly from the algorithm's design: each tracked composite corresponds to exactly one active prime p < sqrt(n).
 pub fn primes() -> impl Iterator<Item = u32> {
-    let mut map = HashMap::from([(4, 2)]);
-    successors(Some((2u32, true)), move |(pred, _)| {
-        let n = pred + 1;
-        let is_prime = match map.remove(&n) {
-            None => {
-                if let Some(square) = n.checked_mul(n) {
-                    map.insert(square, n);
-                }
-                true
-            }
-            Some(p) => {
-                let mut skipped = n + p;
-                while map.contains_key(&skipped) {
-                    skipped += p;
-                }
-                map.insert(skipped, p);
+    let mut mults = HashMap::with_capacity_and_hasher(6542, BuildHasherDefault::<FxHasher>::new());
+    (2u32..).filter(move |&n| {
+        mults
+            .remove(&n)
+            .map(|p| {
+                successors(Some(n), |m| m.checked_add(p))
+                    .skip(1)
+                    .find(|m| !mults.contains_key(m))
+                    .and_then(|next_mult| mults.insert(next_mult, p));
                 false
-            }
-        };
-        Some((n, is_prime))
+            })
+            .unwrap_or_else(|| {
+                n.checked_mul(n).and_then(|sq| mults.insert(sq, n));
+                true
+            })
     })
-    .filter_map(|(n, is_prime)| is_prime.then_some(n))
 }
 
 /// Collatz orbit
@@ -82,14 +78,13 @@ pub fn primes() -> impl Iterator<Item = u32> {
 /// Returns an iterator that yields the Collatz orbit starting from `n`.
 ///
 /// The iterator terminates once it reaches 1.
+#[allow(clippy::obfuscated_if_else)]
 pub fn collatz(n: u32) -> impl Iterator<Item = u32> {
     successors(Some(n), |&prev| {
         (1 < prev).then(|| {
-            if prev.is_multiple_of(2) {
-                prev / 2
-            } else {
-                3 * prev + 1
-            }
+            (prev.is_multiple_of(2))
+                .then_some(prev / 2)
+                .unwrap_or_else(|| 3 * prev + 1)
         })
     })
 }
@@ -125,13 +120,19 @@ pub fn is_mersenne_exp(p: u8) -> bool {
 /// Otherwise, it loops infinitely.
 pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
     let a0 = n.isqrt();
-    successors(Some(((0, 1), a0)), move |&((prev_m, prev_d), prev_a)| {
+    let period = successors(Some(((0, 1), a0)), move |&((prev_m, prev_d), prev_a)| {
         let next_m = prev_d * prev_a - prev_m;
         let next_d = (n - next_m * next_m).checked_div(prev_d)?;
         let next_a = (a0 + next_m).checked_div(next_d)?;
         Some(((next_m, next_d), next_a))
     })
-    .map(|(_, a)| a)
+    .skip(1)
+    .take_while_inclusive(move |&(_, a)| a != 2 * a0)
+    .map(|(_, a)| a);
+    // .map_while(move |(_, a)| (a != 2 * a0).then_some(a))
+    // .chain(Some(2 * a0))
+
+    once(a0).chain(period.cycle())
 }
 
 /// R. W. Floyd's cycle detection algorithm
