@@ -127,10 +127,8 @@ pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
         Some(((next_m, next_d), next_a))
     })
     .skip(1)
-    .take_while_inclusive(move |&(_, a)| a != 2 * a0)
-    .map(|(_, a)| a);
-    // .map_while(move |(_, a)| (a != 2 * a0).then_some(a))
-    // .chain(Some(2 * a0))
+    .map(|(_, a)| a)
+    .take_while_inclusive(move |&a| a != 2 * a0);
 
     once(a0).chain(period.cycle())
 }
@@ -138,12 +136,12 @@ pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
 /// R. W. Floyd's cycle detection algorithm
 ///
 /// Returns `mu` (the length of the tail) and `lambda` (the length of the cycle).
-pub fn detect_cycle_floyd<T, F>(x0: &T, f: &F) -> (usize, usize)
+pub fn detect_cycle_floyd<T, F>(x0: &T, endo: &F) -> (usize, usize)
 where
     T: Clone + Eq,
     F: Fn(&T) -> T,
 {
-    let orbit = |init| successors(Some(init), |x| Some(f(x)));
+    let orbit = |init| successors(Some(init), |x| Some(endo(x)));
 
     let tortoise = orbit(x0.clone());
     let hare = tortoise.clone().step_by(2);
@@ -154,7 +152,7 @@ where
         .find_map(|(t, h)| (t == h).then_some(t))
         .expect(UNREACHABLE_EMPTY);
 
-    let cycle = orbit(f(&reunion));
+    let cycle = orbit(endo(&reunion));
     let lambda = 1 + cycle
         .enumerate()
         .find_map(|(lambda, x)| (x == reunion).then_some(lambda))
@@ -173,12 +171,12 @@ where
 /// R. P. Brent's improved cycle detection algorithm
 ///
 /// Returns `mu` (the length of the tail) and `lambda` (the length of the cycle).
-pub fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
+pub fn detect_cycle_brent<T, F>(x0: &T, endo: &F) -> (usize, usize)
 where
     T: Clone + Eq,
     F: Fn(&T) -> T,
 {
-    let orbit = |init| successors(Some(init), |x| Some(f(x)));
+    let orbit = |init| successors(Some(init), |x| Some(endo(x)));
 
     let lambda = 1
         + (0..)
@@ -187,7 +185,7 @@ where
             .filter_map(|(offset, t)| (offset == 0).then_some(t))
             .enumerate()
             .flat_map(|(exp, t)| repeat_n(t, 1 << exp).enumerate())
-            .zip(orbit(f(x0)))
+            .zip(orbit(endo(x0)))
             .find_map(|((lambda, t), h)| (t == h).then_some(lambda))
             .expect(UNREACHABLE_EMPTY);
 

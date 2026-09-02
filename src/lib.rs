@@ -149,12 +149,12 @@ mod tests {
         ];
 
         for (mu, lambda, x0) in tests {
-            let f = move |x: &usize| {
+            let endo = move |x: &usize| {
                 x.checked_sub(x0 + mu) // entered the cycle?
                     .map_or_else(|| x + 1, |over| x0 + mu + (over + 1) % lambda)
             };
 
-            let (detected_mu, detected_lambda) = detector(&x0, &f);
+            let (detected_mu, detected_lambda) = detector(&x0, &endo);
             assert_eq!(mu, detected_mu);
             assert_eq!(lambda, detected_lambda);
         }
@@ -162,13 +162,13 @@ mod tests {
 
     #[test]
     fn test_detect_cycle_floyd() {
-        cycle_detector_tester(|x0, f| successors::detect_cycle_floyd(x0, &f));
-        cycle_detector_tester(|x0, f| iterate::detect_cycle_floyd(x0, &f));
+        cycle_detector_tester(|x0, endo| successors::detect_cycle_floyd(x0, &endo));
+        cycle_detector_tester(|x0, endo| iterate::detect_cycle_floyd(x0, &endo));
     }
 
     #[test]
     fn test_detect_cycle_brent() {
-        cycle_detector_tester(|x0, f| successors::detect_cycle_brent(x0, &f));
-        cycle_detector_tester(|x0, f| iterate::detect_cycle_brent(x0, &f));
+        cycle_detector_tester(|x0, endo| successors::detect_cycle_brent(x0, &endo));
+        cycle_detector_tester(|x0, endo| iterate::detect_cycle_brent(x0, &endo));
     }
 }

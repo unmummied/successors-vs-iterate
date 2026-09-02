@@ -78,12 +78,12 @@ pub fn conti_frac_sqrt(n: u32) -> impl Iterator<Item = u32> {
     .map(|(_, a)| a)
 }
 
-pub fn detect_cycle_floyd<T, F>(x0: &T, f: &F) -> (usize, usize)
+pub fn detect_cycle_floyd<T, F>(x0: &T, endo: &F) -> (usize, usize)
 where
     T: Clone + Eq,
     F: Fn(&T) -> T,
 {
-    let orbit = |init| iterate(init, |x| f(x));
+    let orbit = |init| iterate(init, |x| endo(x));
 
     let tortoise = orbit(x0.clone());
     let hare = tortoise.clone().step_by(2);
@@ -94,7 +94,7 @@ where
         .find_map(|(t, h)| (t == h).then_some(t))
         .expect(UNREACHABLE_EMPTY);
 
-    let cycle = orbit(f(&reunion));
+    let cycle = orbit(endo(&reunion));
     let lambda = 1 + cycle
         .enumerate()
         .find_map(|(lambda, x)| (x == reunion).then_some(lambda))
@@ -110,12 +110,12 @@ where
     (mu, lambda)
 }
 
-pub fn detect_cycle_brent<T, F>(x0: &T, f: &F) -> (usize, usize)
+pub fn detect_cycle_brent<T, F>(x0: &T, endo: &F) -> (usize, usize)
 where
     T: Clone + Eq,
     F: Fn(&T) -> T,
 {
-    let orbit = |init| iterate(init, |x| f(x));
+    let orbit = |init| iterate(init, |x| endo(x));
 
     let lambda = 1
         + (0..)
@@ -124,7 +124,7 @@ where
             .filter_map(|(offset, t)| (offset == 0).then_some(t))
             .enumerate()
             .flat_map(|(exp, t)| repeat_n(t, 1 << exp).enumerate())
-            .zip(orbit(f(x0)))
+            .zip(orbit(endo(x0)))
             .find_map(|((lambda, t), h)| (t == h).then_some(lambda))
             .expect(UNREACHABLE_EMPTY);
 
